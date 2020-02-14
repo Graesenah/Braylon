@@ -12,7 +12,6 @@ import com.dev10.braylon.service.productService;
 import com.dev10.braylon.service.salesVisitService;
 import com.dev10.braylon.service.userService;
 import java.security.Principal;
-import java.util.ArrayList;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -48,8 +47,10 @@ public abstract class MainController {
     @GetMapping("/home")
     public String loadHomePage(Model model) {
         if (userIsAdmin()) {
-            model.addAttribute("orders", new ArrayList());
-            model.addAttribute("salesVisits", new ArrayList());
+            List<Bill> allBills = bServ.findAllBills();
+            List<SalesVisit> allSalesVisits = svServ.findAllSalesVisits();
+            model.addAttribute("orders", allBills);
+            model.addAttribute("salesVisits", allSalesVisits);
             return "home";
         } else {
             List<SalesVisit> visits = uServ.findAllSalesVisitsByUsername(currentUser.getUsername());
@@ -111,16 +112,16 @@ public abstract class MainController {
     }
 
     //Adding SalesRep
-    @GetMapping("/addSalesRep")
-    public String loadAddingSalesRep(Model model) {
+    @GetMapping("/addSalesRep/{username}")
+    public String loadAddingSalesRep(Model model, @PathVariable String username) {
         User user = new User();
         model.addAttribute("user", user);
         model.addAttribute("header", "Add");
         return "salesRepDetail";
     }
 
-    @PostMapping("/addSalesRep")
-    public String addNewSalesRep(User user) {
+    @PostMapping("/addSalesRep/{username}")
+    public String addNewSalesRep(User user, @PathVariable String username) {
         user.setPassword(encoder.encode(user.getPassword()));
         uServ.addUser(user);
         return "redirect:/home";
@@ -142,31 +143,37 @@ public abstract class MainController {
     }
 
     //Adding SalesVisit
-    @GetMapping("/addSalesVisit")
-    public String viewAddSalesVisit(Model model) {
+    @GetMapping("/addSalesVisit/{username}")
+    public String viewAddSalesVisit(Model model, @PathVariable String username) {
         List<Customer> customers = cServ.findAllCustomersByUsername(currentUser.getUsername());
         model.addAttribute("customers", customers);
+        User user = new User();
+        Customer cust = new Customer();
+        SalesVisit sv = new SalesVisit();
+        sv.setUser(user);
+        sv.setCustomer(cust);
+        model.addAttribute("salesVisit", sv);
         return "salesVisitDetail";
     }
 
-    @PostMapping("/addSalesVisit")
-    public String processAddSalesVisit(SalesVisit visit) {
+    @PostMapping("/addSalesVisit/{username}")
+    public String processAddSalesVisit(SalesVisit visit, @PathVariable String username) {
         svServ.addSalesVisit(visit);
         return "redirect:/home";
     }
 
     //Adding Bill
-    @GetMapping("/addBill")
-    public String viewAddBill(Model model, Bill bill) {
+    @GetMapping("/addOrder/{username}")
+    public String viewAddBill(@PathVariable String username, Model model, Bill bill) {
         List<Customer> customers = cServ.findAllCustomersByUsername(currentUser.getUsername());
         model.addAttribute("customers", customers);
         List<Product> products = pServ.findAllProducts();
         model.addAttribute("products", products);
-        return "billDetail";
+        return "orderAdd";
     }
 
-    @PostMapping("/addBill")
-    public String processAddBill(Principal principal, Bill bill) {
+    @PostMapping("/addOrder/{username}")
+    public String processAddBill(@PathVariable String username, Bill bill) {
         bServ.addBill(bill);
         return "redirect:/home";
     }
